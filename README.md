@@ -28,7 +28,7 @@
 
 ## 使用方法
 
-1.  本程序调用的 API `base_url` 来自 [硅基流动 (SiliconFlow)]https://cloud.siliconflow.cn/i/hjshxbt8)，您可以在其官网免费申请 API Key，并免费使用默认模型。
+1.  本程序调用的 API `base_url` 来自 [硅基流动 (SiliconFlow)](https://cloud.siliconflow.cn/i/hjshxbt8)，您可以在其官网免费申请 API Key，并免费使用默认模型。
 ![image](https://github.com/user-attachments/assets/d7b510f9-81cc-422f-9bef-392ce074bc2a)
 
 2. 在终端中运行 Python 脚本：
