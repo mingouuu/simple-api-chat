@@ -37,10 +37,12 @@
 </div>
 
 你亦可以透过修改`API key`、`base url`、`model`等参数更换其他大模型供应商或第三方供应商
+
 2. 在终端中运行 Python 脚本：
     ```bash
     python simple-api-chat.py
     ```
+    
 3.  根据提示输入你的信息：
     * **API Key**：输入您在硅基流动申请的 API 密钥。
     * **模型名称**：可选，如果留空，将使用默认模型 `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`。
