@@ -1,7 +1,7 @@
 import requests
 import json
 
-
+# 配置请求的 payload 数据
 def get_payload(system_content, user_content, model, assistant_content=None):
     """
     配置请求的 payload 数据
@@ -11,6 +11,7 @@ def get_payload(system_content, user_content, model, assistant_content=None):
     :param assistant_content: 助手角色的回复内容，可选
     :return: 包含请求参数的字典
     """
+    # 初始化消息列表，包含系统角色和用户角色的消息
     messages = [
         {
             "role": "system",
@@ -21,12 +22,14 @@ def get_payload(system_content, user_content, model, assistant_content=None):
             "content": user_content
         }
     ]
+    # 如果提供了助手角色的回复内容，则添加到消息列表中
     if assistant_content:
         messages.append({
             "role": "assistant",
             "content": assistant_content
         })
 
+    # 返回包含所有请求参数的字典
     return {
         "model": model,
         "stream": True,
@@ -42,89 +45,99 @@ def get_payload(system_content, user_content, model, assistant_content=None):
         "messages": messages
     }
 
-
+# 配置请求的 headers 数据（api key）
 def get_headers(api_key):
     """
     配置请求的 headers 数据
     :param api_key: 用户输入的 API Key
     :return: 包含请求头信息的字典
     """
+    # 返回包含授权信息和内容类型的请求头字典
     return {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
 
-
-def send_request(url, payload, headers):
-    """
-    发送 POST 请求
-    :param url: 请求的 URL
-    :param payload: 请求的 payload 数据
-    :param headers: 请求的 headers 数据
-    :return: 请求的响应对象
-    """
-    return requests.post(url, json=payload, headers=headers, stream=True)
-
-
+# 向用户展示推理过程
 def process_response(response):
     """
     处理请求的响应数据
     :param response: 请求的响应对象
     :return: 处理后的 reasoning_content 和 content
     """
+    # 初始化推理内容和回复内容为空字符串
     reasoning_content = ""
     content = ""
-    first_reasoning_output = True  # 标记是否是第一次输出 reasoning_content
-    last_reasoning_output = False  # 标记是否是最后一次输出 reasoning_content
+    # 标记是否是第一次输出 reasoning_content
+    first_reasoning_output = True
+    # 标记是否是最后一次输出 reasoning_content
+    last_reasoning_output = False
     try:
+        # 逐行迭代响应内容
         for line in response.iter_lines():
             if line:
+                # 解码响应行并去除 "data: " 前缀
                 decoded_line = line.decode('utf-8').replace("data: ", "")
                 if decoded_line == "[DONE]":
-                    last_reasoning_output = True  # 标记为最后一次输出
+                    # 标记为最后一次输出
+                    last_reasoning_output = True
                     break
                 try:
+                    # 将解码后的行解析为 JSON 对象
                     chunk = json.loads(decoded_line)
                     if 'choices' in chunk and chunk['choices']:
+                        # 获取第一个选择
                         choice = chunk['choices'][0]
                         if 'delta' in choice:
+                            # 获取 delta 部分
                             delta = choice['delta']
                             if 'reasoning_content' in delta and delta['reasoning_content'] is not None:
+                                # 获取推理内容部分并追加到 reasoning_content 中
                                 reasoning_part = delta['reasoning_content']
                                 reasoning_content += reasoning_part
                                 if first_reasoning_output:
+                                    # 第一次输出时打印标题和分隔线
                                     print("Reasoning_Content:")
                                     print("=" * 50)
-                                    first_reasoning_output = False  # 第一次输出后标记为 False
+                                    first_reasoning_output = False
+                                # 打印推理内容部分
                                 print(reasoning_part, end='', flush=True)
                                 if last_reasoning_output:
+                                    # 最后一次输出时打印分隔线
                                     print("\n" + "=" * 50)
                             elif 'content' in delta and delta['content'] is not None:
+                                # 获取回复内容部分并追加到 content 中
                                 content_part = delta['content']
                                 content += content_part
                 except json.JSONDecodeError as json_err:
+                    # 处理 JSON 解析错误
                     print(f"JSON decoding error: {json_err}, Line: {decoded_line}")
                     continue
                 except KeyError as key_err:
+                    # 处理键错误
                     print(f"Key error: {key_err}, Chunk: {chunk}")
                     continue
     except Exception as e:
+        # 处理其他异常
         print(f"An error occurred: {e}")
     return reasoning_content, content
 
-
+# 打印最终的 content 结果
 def print_result(content):
     """
     打印最终的 content 结果
     :param content: 处理后的 content 数据
     """
+    # 打印分隔线和标题
     print("\n\n" + "=" * 50)
     print("Content:")
     print("=" * 50)
+    # 打印最终的回复内容
     print(content)
+    # 打印分隔线
     print("=" * 50)
 
-
+# 主函数
 def main():
     """
     主函数，协调各个模块的功能
@@ -150,14 +163,18 @@ def main():
     default_assistant_content = None
     assistant_content = input("请输入assistant的回复内容（允许跳过）：").strip() or default_assistant_content
 
+    # 定义请求的 URL
     url = "https://api.siliconflow.cn/v1/chat/completions"
-    # 调整参数顺序
+    # 调用 get_payload 函数生成请求的 payload 数据
     payload = get_payload(system_content, user_content, model, assistant_content)
+    # 调用 get_headers 函数生成请求的 headers 数据
     headers = get_headers(api_key)
-    response = send_request(url, payload, headers)
+    # 调用 send_request 函数发送请求
+    response = requests.post(url, json=payload, headers=headers, stream=True)
+    # 调用 process_response 函数处理响应数据
     _, content = process_response(response)
+    # 调用 print_result 函数打印最终结果
     print_result(content)
-
 
 if __name__ == "__main__":
     main()
