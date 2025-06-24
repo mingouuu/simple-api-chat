@@ -36,7 +36,7 @@
 
 </div>
 
-你亦可以透过修改`API key`、`base url`、`model`等参数更换其他大模型供应商或第三方供应商
+   你亦可以透过修改`API key`、`base url`、`model`等参数更换其他大模型供应商或第三方供应商
 
 2. 在终端中运行 Python 脚本：
     ```bash
