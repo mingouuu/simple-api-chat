@@ -28,12 +28,15 @@
 
 ## 使用方法
 
-1.  在终端中运行 Python 脚本：
+1.  本程序调用的 API `base_url` 来自 [硅基流动 (SiliconFlow)]https://cloud.siliconflow.cn/i/hjshxbt8)，您可以在其官网免费申请 API Key，并免费使用默认模型。
+![image](https://github.com/user-attachments/assets/d7b510f9-81cc-422f-9bef-392ce074bc2a)
+
+2. 在终端中运行 Python 脚本：
     ```bash
     python simple-api-chat.py
     ```
-2.  根据提示输入你的信息：
-    * **API Key**：必须提供你的 API 密钥。
+3.  根据提示输入你的信息：
+    * **API Key**：输入您在硅基流动申请的 API 密钥。
     * **模型名称**：可选，如果留空，将使用默认模型 `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`。
     * **System 提示内容**：可选，如果留空，将使用默认内容 "你是一名专业的编程助手，擅长协助编写代码并会用通俗的语言解答问题"。
     * **User 输入内容**：可选，如果留空，将使用默认内容 "以下是我的代码，请你为我进行优化"。
