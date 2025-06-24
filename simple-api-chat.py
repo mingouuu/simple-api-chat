@@ -169,7 +169,7 @@ def main():
     payload = get_payload(system_content, user_content, model, assistant_content)
     # 调用 get_headers 函数生成请求的 headers 数据
     headers = get_headers(api_key)
-    # 调用 send_request 函数发送请求
+    # 调用 request 函数发送请求
     response = requests.post(url, json=payload, headers=headers, stream=True)
     # 调用 process_response 函数处理响应数据
     _, content = process_response(response)
