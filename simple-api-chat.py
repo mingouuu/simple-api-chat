@@ -1,6 +1,88 @@
 import requests
 import json
 
+
+class ProcessResponse:
+    def __init__(self):
+        self.reasoning_content = ""
+        self.content = ""
+        self.first_reasoning_output = True
+        self.last_reasoning_output = False
+
+    def is_last_line(self, decoded_line):
+        """检查是否是最后一行 [DONE]"""
+        return decoded_line == "[DONE]"
+
+    def parse_json(self, decoded_line):
+        """解析 JSON 数据，处理解析错误"""
+        try:
+            return json.loads(decoded_line)
+        except json.JSONDecodeError as json_err:
+            print(f"JSON decoding error: {json_err}, Line: {decoded_line}")
+            return None
+
+    def get_choice(self, chunk):
+        """从 chunk 中获取第一个 choice"""
+        if 'choices' in chunk and chunk['choices']:
+            return chunk['choices'][0]
+        return None
+
+    def get_delta(self, choice):
+        """从 choice 中获取 delta"""
+        if 'delta' in choice:
+            return choice['delta']
+        return None
+
+    def process_reasoning_content(self, delta):
+        """处理推理内容"""
+        if 'reasoning_content' in delta and delta['reasoning_content'] is not None:
+            reasoning_part = delta['reasoning_content']
+            self.reasoning_content += reasoning_part
+            if self.first_reasoning_output:
+                print("Reasoning_Content:")
+                print("=" * 50)
+                self.first_reasoning_output = False
+            print(reasoning_part, end='', flush=True)
+
+    def process_content(self, delta):
+        """处理回复内容"""
+        if 'content' in delta and delta['content'] is not None:
+            content_part = delta['content']
+            self.content += content_part
+
+    def process(self, response):
+        """
+        处理请求的响应数据
+        :param response: 请求的响应对象
+        :return: 处理后的 reasoning_content 和 content
+        """
+        try:
+            # 逐行迭代响应内容
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                # 解码响应行并去除 "data: " 前缀
+                decoded_line = line.decode('utf-8').replace("data: ", "")
+                if self.is_last_line(decoded_line):
+                    self.last_reasoning_output = True
+                    break
+                chunk = self.parse_json(decoded_line)
+                if chunk is None:
+                    continue
+                choice = self.get_choice(chunk)
+                if choice is None:
+                    continue
+                delta = self.get_delta(choice)
+                if delta is None:
+                    continue
+                self.process_reasoning_content(delta)
+                self.process_content(delta)
+        except Exception as e:
+            # 处理其他异常
+            print(f"An error occurred: {e}")
+        return self.reasoning_content, self.content
+
+
 # 配置请求的 payload 数据
 def get_payload(system_content, user_content, model, assistant_content=None):
     """
@@ -45,6 +127,7 @@ def get_payload(system_content, user_content, model, assistant_content=None):
         "messages": messages
     }
 
+
 # 配置请求的 headers 数据（api key）
 def get_headers(api_key):
     """
@@ -58,69 +141,6 @@ def get_headers(api_key):
         "Content-Type": "application/json"
     }
 
-# 向用户展示推理过程
-def process_response(response):
-    """
-    处理请求的响应数据
-    :param response: 请求的响应对象
-    :return: 处理后的 reasoning_content 和 content
-    """
-    # 初始化推理内容和回复内容为空字符串
-    reasoning_content = ""
-    content = ""
-    # 标记是否是第一次输出 reasoning_content
-    first_reasoning_output = True
-    # 标记是否是最后一次输出 reasoning_content
-    last_reasoning_output = False
-    try:
-        # 逐行迭代响应内容
-        for line in response.iter_lines():
-            if line:
-                # 解码响应行并去除 "data: " 前缀
-                decoded_line = line.decode('utf-8').replace("data: ", "")
-                if decoded_line == "[DONE]":
-                    # 标记为最后一次输出
-                    last_reasoning_output = True
-                    break
-                try:
-                    # 将解码后的行解析为 JSON 对象
-                    chunk = json.loads(decoded_line)
-                    if 'choices' in chunk and chunk['choices']:
-                        # 获取第一个选择
-                        choice = chunk['choices'][0]
-                        if 'delta' in choice:
-                            # 获取 delta 部分
-                            delta = choice['delta']
-                            if 'reasoning_content' in delta and delta['reasoning_content'] is not None:
-                                # 获取推理内容部分并追加到 reasoning_content 中
-                                reasoning_part = delta['reasoning_content']
-                                reasoning_content += reasoning_part
-                                if first_reasoning_output:
-                                    # 第一次输出时打印标题和分隔线
-                                    print("Reasoning_Content:")
-                                    print("=" * 50)
-                                    first_reasoning_output = False
-                                # 打印推理内容部分
-                                print(reasoning_part, end='', flush=True)
-                                if last_reasoning_output:
-                                    # 最后一次输出时打印分隔线
-                                    print("\n" + "=" * 50)
-                            elif 'content' in delta and delta['content'] is not None:
-                                # 获取回复内容部分并追加到 content 中
-                                content_part = delta['content']
-                                content += content_part
-                except json.JSONDecodeError as json_err:
-                    # 处理 JSON 解析错误
-                    print(f"JSON decoding error: {json_err}, Line: {decoded_line}")
-                    continue
-                except KeyError as key_err:
-                    # 处理键错误
-                    print(f"Key error: {key_err}, Chunk: {chunk}")
-                    continue
-    except Exception as e:
-        # 处理其他异常
-        print(f"An error occurred: {e}")
-    return reasoning_content, content
 
 # 打印最终的 content 结果
 def print_result(content):
@@ -136,6 +156,7 @@ def print_result(content):
     print(content)
     # 打印分隔线
     print("=" * 50)
+
 
 # 主函数
 def main():
@@ -171,10 +192,12 @@ def main():
     headers = get_headers(api_key)
     # 调用 request 函数发送请求
     response = requests.post(url, json=payload, headers=headers, stream=True)
-    # 调用 process_response 函数处理响应数据
-    _, content = process_response(response)
+    # 调用 ProcessResponse 类处理响应数据
+    processor = ProcessResponse()
+    _, content = processor.process(response)
     # 调用 print_result 函数打印最终结果
     print_result(content)
+
 
 if __name__ == "__main__":
     main()
