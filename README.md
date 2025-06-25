@@ -1,5 +1,9 @@
 # Simple API Chat
 
+<div align="center">
+<p>简体中文 | <a href="README_EN.md">English</a></p>
+</div>
+
 这是一个简单的 Python 脚本，用于与大语言模型 API 进行交互，并以流式方式获取和展示模型的推理过程与最终结果。
 
 ## 功能
