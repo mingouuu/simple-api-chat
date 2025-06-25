@@ -32,7 +32,7 @@
 
 ## 使用方法
 
-1.  本程序调用的 `API key` 来自 [硅基流动 (SiliconFlow)](https://cloud.siliconflow.cn/i/hjshxbt8)，您可以在其官网免费申请 API Key，并免费使用默认模型。
+1.  本程序调用的 `API key` 来自 [硅基流动 (SiliconFlow)](https://cloud.siliconflow.cn/i/hjshxbt8)，您可以在其官网免费申请 API Key，并免费使用默认模型（deepseek-ai/DeepSeek-R1-0528-Qwen3-8B）。
 
 <div align="center">
 
