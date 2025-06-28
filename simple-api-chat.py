@@ -49,7 +49,6 @@ class ProcessResponse:
         if content_type == 'reasoning_content':
             self.reasoning_content += content_part
             if self.first_reasoning_header:
-                print("\n" + "=" * 50)
                 print("Reasoning_Content:\n" + "=" * 50)
                 self.first_reasoning_header = False
             print(content_part, end='', flush=True)
