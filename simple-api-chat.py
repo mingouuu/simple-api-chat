@@ -6,81 +6,49 @@ class ProcessResponse:
     def __init__(self):
         self.reasoning_content = ""
         self.content = ""
-        self.first_reasoning_output = True
-        self.last_reasoning_output = False
-
-    def is_last_line(self, decoded_line):
-        """检查是否是最后一行 [DONE]"""
-        return decoded_line == "[DONE]"
-
-    def parse_json(self, decoded_line):
-        """解析 JSON 数据，处理解析错误"""
-        try:
-            return json.loads(decoded_line)
-        except json.JSONDecodeError as json_err:
-            print(f"JSON decoding error: {json_err}, Line: {decoded_line}")
-            return None
-
-    def get_choice(self, chunk):
-        """从 chunk 中获取第一个 choice"""
-        if 'choices' in chunk and chunk['choices']:
-            return chunk['choices'][0]
-        return None
-
-    def get_delta(self, choice):
-        """从 choice 中获取 delta"""
-        if 'delta' in choice:
-            return choice['delta']
-        return None
-
-    def process_reasoning_content(self, delta):
-        """处理推理内容"""
-        if 'reasoning_content' in delta and delta['reasoning_content'] is not None:
-            reasoning_part = delta['reasoning_content']
-            self.reasoning_content += reasoning_part
-            if self.first_reasoning_output:
-                print("Reasoning_Content:")
-                print("=" * 50)
-                self.first_reasoning_output = False
-            print(reasoning_part, end='', flush=True)
-
-    def process_content(self, delta):
-        """处理回复内容"""
-        if 'content' in delta and delta['content'] is not None:
-            content_part = delta['content']
-            self.content += content_part
+        self.first_reasoning_header = True
 
     def process(self, response):
-        """
-        处理请求的响应数据
-        :param response: 请求的响应对象
-        :return: 处理后的 reasoning_content 和 content
-        """
+        """流式响应处理核心方法"""
         try:
-            # 逐行迭代响应内容
             for line in response.iter_lines():
                 if not line:
                     continue
-                # 解码响应行并去除 "data: " 前缀
+                
                 decoded_line = line.decode('utf-8').replace("data: ", "")
-                if self.is_last_line(decoded_line):
-                    self.last_reasoning_output = True
+                if decoded_line == "[DONE]":
                     break
-                chunk = self.parse_json(decoded_line)
-                if chunk is None:
+
+                try:
+                    chunk = json.loads(decoded_line)
+                except json.JSONDecodeError as e:
+                    print(f"JSON 解析错误: {e}，数据: {decoded_line}")
                     continue
-                choice = self.get_choice(chunk)
-                if choice is None:
-                    continue
-                delta = self.get_delta(choice)
-                if delta is None:
-                    continue
-                self.process_reasoning_content(delta)
-                self.process_content(delta)
+
+                # 合并 choice 和 delta 处理逻辑
+                if chunk.get('choices') and chunk['choices'][0].get('delta'):
+                    delta = chunk['choices'][0]['delta']
+                    
+                    # 合并内容处理逻辑
+                    if delta.get('reasoning_content'):
+                        self._handle_output(delta['reasoning_content'], 'reasoning_content')
+                    
+                    if delta.get('content'):
+                        self.content += delta['content']
+
         except Exception as e:
-            # 处理其他异常
-            print(f"An error occurred: {e}")
+            print(f"处理异常: {e}")
+        
         return self.reasoning_content, self.content
+
+    def _handle_output(self, content_part, content_type):
+        """通用内容处理"""
+        if content_type == 'reasoning_content':
+            self.reasoning_content += content_part
+            if self.first_reasoning_header:
+                print("Reasoning_Content:\n" + "=" * 50)
+                self.first_reasoning_header = False
+            print(content_part, end='', flush=True)
 
 
 # 配置请求的 payload 数据
@@ -142,7 +110,7 @@ def get_headers(api_key):
 
 
 # 打印最终的 content 结果
-def print_result(content):
+def print_result(final_content):
     """
     打印最终的 content 结果
     :param content: 处理后的 content 数据
@@ -152,7 +120,7 @@ def print_result(content):
     print("Content:")
     print("=" * 50)
     # 打印最终的回复内容
-    print(content)
+    print(final_content)
     # 打印分隔线
     print("=" * 50)
 
@@ -162,7 +130,10 @@ def main():
     """
     主函数，协调各个模块的功能
     """
+    # 定义请求的 URL
+    url = "https://api.siliconflow.cn/v1/chat/completions"
     # 获取 API Key，无默认值，要求用户必须输入
+
     api_key = input("请输入你的 API Key：").strip()
     while not api_key:
         api_key = input("API Key 不能为空，请重新输入：").strip()
@@ -188,8 +159,7 @@ def main():
         if user_content.lower() == 'q':
             break
 
-        # 定义请求的 URL
-        url = "https://api.siliconflow.cn/v1/chat/completions"
+
         # 调用 get_payload 函数生成请求的 payload 数据
         payload = get_payload(system_content, user_content, model, messages=messages)
         # 调用 get_headers 函数生成请求的 headers 数据
