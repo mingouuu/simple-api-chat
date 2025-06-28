@@ -1,12 +1,13 @@
 import requests
 import json
 
-
+#流式输出推理内容和回答内容
 class ProcessResponse:
     def __init__(self):
         self.reasoning_content = ""
         self.content = ""
         self.first_reasoning_header = True
+        self.first_content_header = True  
 
     def process(self, response):
         """流式响应处理核心方法"""
@@ -31,25 +32,36 @@ class ProcessResponse:
                     
                     # 合并内容处理逻辑
                     if delta.get('reasoning_content'):
-                        self._handle_output(delta['reasoning_content'], 'reasoning_content')
+                        self.print_result(delta['reasoning_content'], 'reasoning_content')
                     
                     if delta.get('content'):
-                        self.content += delta['content']
+                        self.print_result(delta['content'], 'content')  
 
         except Exception as e:
             print(f"处理异常: {e}")
         
+        if not self.first_content_header:
+            print("\n" + "=" * 50)
         return self.reasoning_content, self.content
 
-    def _handle_output(self, content_part, content_type):
+    def print_result(self, content_part, content_type):
         """通用内容处理"""
         if content_type == 'reasoning_content':
             self.reasoning_content += content_part
             if self.first_reasoning_header:
+                print("\n" + "=" * 50)
                 print("Reasoning_Content:\n" + "=" * 50)
                 self.first_reasoning_header = False
             print(content_part, end='', flush=True)
-
+            
+        elif content_type == 'content':
+            self.content += content_part
+            if self.first_content_header:
+                print("\n" + "=" * 50)
+                print("\nContent:\n" + "=" * 50)  
+                self.first_content_header = False
+            print(content_part, end='', flush=True)
+            
 
 # 配置请求的 payload 数据
 def get_payload(system_content, user_content, model, assistant_content=None, messages=None):
@@ -62,13 +74,6 @@ def get_payload(system_content, user_content, model, assistant_content=None, mes
     :param messages: 历史对话消息列表，可选
     :return: 包含请求参数的字典
     """
-    if messages is None:
-        messages = [
-            {
-                "role": "system",
-                "content": system_content
-            }
-        ]
     messages.append({
         "role": "user",
         "content": user_content
@@ -109,22 +114,6 @@ def get_headers(api_key):
     }
 
 
-# 打印最终的 content 结果
-def print_result(final_content):
-    """
-    打印最终的 content 结果
-    :param content: 处理后的 content 数据
-    """
-    # 打印分隔线和标题
-    print("\n\n" + "=" * 50)
-    print("Content:")
-    print("=" * 50)
-    # 打印最终的回复内容
-    print(final_content)
-    # 打印分隔线
-    print("=" * 50)
-
-
 # 主函数
 def main():
     """
@@ -132,8 +121,8 @@ def main():
     """
     # 定义请求的 URL
     url = "https://api.siliconflow.cn/v1/chat/completions"
+    
     # 获取 API Key，无默认值，要求用户必须输入
-
     api_key = input("请输入你的 API Key：").strip()
     while not api_key:
         api_key = input("API Key 不能为空，请重新输入：").strip()
@@ -144,8 +133,8 @@ def main():
 
     # 获取 system 提示内容，若用户跳过则使用默认值
     default_system_content = "你是一名专业的编程助手，擅长协助编写代码并会用通俗的语言解答问题"
-    system_content = input("请输入system的提示内容：（默认：你是一名专业的编程助手，擅长协助编写代码并会用通俗的语言解答问题）").strip() or default_system_content
-    
+    system_content = input(f"请输入system的提示内容：（默认：{default_system_content}）").strip() or default_system_content
+
     messages = [
         {
             "role": "system",
@@ -153,9 +142,18 @@ def main():
         }
     ]
 
+    first_input = True  
+    default_user_content = "接下来我为提供我的代码，请帮助我改正代码中的可能存在的问题。"
+    
     while True:
-        # 获取 user 输入内容，允许用户输入 'q' 或按 'ctrl+c' 退出
-        user_content = input("请输入你的问题（输入 'q' 或按 'ctrl+c' 退出）：").strip()
+        # 根据首次输入显示不同提示
+        if first_input:
+            prompt = f"请输入你的问题或代码：（默认：{default_user_content}）"
+            first_input = False
+        else:
+            prompt = "请输入你的问题或代码：（输入 'q' 或按 'ctrl+c' 退出）："
+        
+        user_content = input(prompt).strip() or default_user_content
         if user_content.lower() == 'q':
             break
 
@@ -178,8 +176,6 @@ def main():
             "role": "assistant",
             "content": content
         })
-        # 调用 print_result 函数打印最终结果
-        print_result(content)
 
 
 if __name__ == "__main__":
