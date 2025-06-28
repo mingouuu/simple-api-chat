@@ -1,6 +1,6 @@
 <div align="center">
 <h1>Simple API Chat</h1>
-<div>
+</div>
 
 <div align="center">
 <p>简体中文 | <a href="README_EN.md">English</a></p>
