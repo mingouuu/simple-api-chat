@@ -1,5 +1,5 @@
 <div align="center">
-# Simple API Chat
+<h1>Simple API Chat</h1>
 <div>
 
 <div align="center">
